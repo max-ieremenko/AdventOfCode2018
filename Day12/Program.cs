@@ -12,7 +12,7 @@ namespace Day12
             try
             {
                 Console.WriteLine("Part one: {0}", Task.Solve(ReadFile("input.txt"), 20));
-                ////Console.WriteLine("Part two: {0}", Task.Solve(ReadFile("input.txt"), 50000000000));
+                Console.WriteLine("Part two: {0}", Task.Solve(ReadFile("input.txt"), 50000000000));
             }
             catch (Exception ex)
             {

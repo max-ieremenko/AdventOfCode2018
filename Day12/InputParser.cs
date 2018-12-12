@@ -7,7 +7,7 @@ namespace Day12
     {
         private const char ContainsPlant = '#';
 
-        public static Input Parse(IEnumerable<string> input)
+        public static Tunnel Parse(IEnumerable<string> input)
         {
             bool[] initialState = null;
             var notes = new List<SpreadNote>();
@@ -22,7 +22,7 @@ namespace Day12
                 else if (rowIndex != 1)
                 {
                     var note = ParseNote(row);
-                    if (note.Result)
+                    if (note != null)
                     {
                         notes.Add(note);
                     }
@@ -31,7 +31,7 @@ namespace Day12
                 rowIndex++;
             }
 
-            return new Input(initialState, notes);
+            return new Tunnel(initialState, notes);
         }
 
         internal static bool[] ParseInitialState(string definition)
@@ -48,9 +48,14 @@ namespace Day12
         internal static SpreadNote ParseNote(string definition)
         {
             // ...## => #
-            return new SpreadNote(
-                ParseInitialState(definition.Substring(0, 5)),
-                definition.Last() == ContainsPlant);
+            if (definition.Last() == ContainsPlant)
+            {
+                var pattern = ParseInitialState(definition.Substring(0, 5));
+                return new SpreadNote(pattern);
+            }
+
+            // ignore => .
+            return null;
         }
     }
 }

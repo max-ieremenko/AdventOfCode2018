@@ -50,8 +50,15 @@ namespace Day12
         public void ParseNote(string definition, bool[] pattern, bool result)
         {
             var note = InputParser.ParseNote(definition);
-            note.Pattern.ShouldBe(pattern);
-            note.Result.ShouldBe(result);
+            if (result)
+            {
+                note.ShouldNotBeNull();
+                note.Pattern.ShouldBe(pattern);
+            }
+            else
+            {
+                note.ShouldBeNull();
+            }
         }
 
         [Test]
