@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using NUnit.Framework;
 using Shouldly;
 
@@ -13,64 +11,46 @@ namespace Day15
     public class Tests
     {
         [Test]
-        [TestCaseSource(nameof(GetExamples))]
-        public void Task1Solve(IEnumerable<string> input, int expected)
+        [TestCaseSource(nameof(ParseInput), new object[] { "task1Examples.txt" })]
+        public void Task1Solve(IEnumerable<string> input, int expectedOutcome)
         {
-            Task1.Solve(input).ShouldBe(expected);
+            Task1.Solve(input).ShouldBe(expectedOutcome);
         }
 
         [Test]
-        [TestCase(1)]
-        [TestCase(2)]
-        public void ShowExample(int number)
+        [TestCaseSource(nameof(ParseInput), new object[] { "task2Examples.txt" })]
+        public void Task2Solve(IEnumerable<string> input, int expectedOutcome)
         {
-            var testCase = GetExamples().Skip(number - 1).First();
-            var map = InputParser.Parse((IEnumerable<string>)testCase.Arguments[0]);
+            Task2.Solve(input).ShouldBe(expectedOutcome);
+        }
 
-            Console.WriteLine("Initially:");
-            Console.WriteLine(map);
-
-            var round = 1;
-            while (!map.NexRound().CombatIsFinished)
+        [Test]
+        public void MovementExample()
+        {
+            Map actual = null;
+            foreach (var test in ParseInput("movementExamples.txt"))
             {
-                Console.WriteLine("After {0} round:", round);
-                Console.WriteLine(map);
-
-                var rows = map.Units.Max(i => i.Location.Y);
-                for (var row = 0; row <= rows; row++)
+                var map = InputParser.Parse((IEnumerable<string>)test.Arguments[0]);
+                if (actual == null)
                 {
-                    var units = map.Units.Where(i => i.Location.Y == row).OrderBy(i => i.Location.X).ToList();
-                    if (units.Count > 0)
-                    {
-                        Console.WriteLine(string.Join(", ", units.Select(i => string.Format("{0}({1})", i.Flag, i.HitPoints))));
-                    }
+                    actual = map;
                 }
-
-                round++;
+                else
+                {
+                    actual.NexRound().CombatIsFinished.ShouldBe(false);
+                    actual.ToString().ShouldBe(map.ToString());
+                }
             }
         }
 
-        [Test]
-        [TestCase(2, 1, 4, 2, 3, 1)]
-        public void FindPath(int fromX, int fromY, int toX, int toY, int expectedX, int expectedY)
-        {
-            var testCase = GetExamples().First();
-            var map = InputParser.Parse((IEnumerable<string>)testCase.Arguments[0]);
-
-            var direction = map.CreatePathResolver().FindPath(new Point(fromX, fromY), new Point(toX, toY));
-            direction.ShouldNotBeNull();
-            direction.Length.ShouldBe(3);
-            direction.FirstStep.ShouldBe(new Point(expectedX, expectedY));
-        }
-
-        private static IEnumerable<TestCaseData> GetExamples()
+        private static IEnumerable<TestCaseData> ParseInput(string fileName)
         {
             const string Outcome = "Outcome: ";
 
             var task = new List<string>();
             var counter = 1;
 
-            using (var reader = new StreamReader(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "examples.txt")))
+            using (var reader = new StreamReader(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName)))
             {
                 string line;
                 while ((line = reader.ReadLine()) != null)
@@ -82,7 +62,9 @@ namespace Day15
 
                     if (line.StartsWith(Outcome))
                     {
-                        yield return new TestCaseData(task.ToArray(), int.Parse(line.Substring(Outcome.Length), CultureInfo.InvariantCulture))
+                        yield return new TestCaseData(
+                                task.ToArray(),
+                                int.Parse(line.Substring(Outcome.Length), CultureInfo.InvariantCulture))
                             .SetName("Example " + counter);
 
                         task.Clear();

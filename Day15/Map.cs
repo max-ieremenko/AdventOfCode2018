@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 
@@ -21,7 +22,7 @@ namespace Day15
 
         public RoundResult NexRound()
         {
-            _units.Sort((x, y) => PathResolver.ComparePointsInReadingOrder(x.Location, y.Location));
+            _units.Sort((x, y) => x.Location.CompareInReadingOrder(y.Location));
 
             var isFullRound = true;
             var combatIsFinished = false;
@@ -54,14 +55,20 @@ namespace Day15
         {
             var horizontal = _field.GetLength(0);
             var vertical = _field.GetLength(1);
-            var text = new StringBuilder((horizontal + 2) * vertical);
+
+            var text = new StringBuilder((horizontal + 3) * (vertical + 1))
+                .Append("  ");
+            for (var x = 0; x < horizontal; x++)
+            {
+                text.Append(x.ToString(CultureInfo.InvariantCulture).Last());
+            }
 
             for (var y = 0; y < vertical; y++)
             {
-                if (y > 0)
-                {
-                    text.AppendLine();
-                }
+                var rowNumber = y.ToString("00", CultureInfo.InvariantCulture);
+                text
+                    .AppendLine()
+                    .Append(rowNumber.Substring(rowNumber.Length - 2));
 
                 for (var x = 0; x < horizontal; x++)
                 {
@@ -80,9 +87,9 @@ namespace Day15
             return text.ToString();
         }
 
-        internal PathResolver CreatePathResolver()
+        public Map Clone()
         {
-            return new PathResolver(_field, _units.Select(i => i.Location));
+            return new Map((bool[,])_field.Clone(), _units.Select(i => i.Clone()));
         }
 
         private bool TryToAttack(ref int unitIndex, IEnumerable<Unit> targets)
@@ -119,17 +126,9 @@ namespace Day15
         private bool TryToMove(int unitIndex, IEnumerable<Unit> targets)
         {
             var unit = _units[unitIndex];
-            var pathResolver = CreatePathResolver();
+            var pathResolver = new PathResolver(_field, _units.Select(i => i.Location));
 
-            var path = targets
-                .AsParallel()
-                .Select(i => pathResolver.FindPath(unit.Location, i.Location))
-                .Where(i => i != null)
-                .OrderBy(i => i.Length)
-                .ThenBy(i => i.FirstStep.Y)
-                .ThenBy(i => i.FirstStep.X)
-                .FirstOrDefault();
-
+            var path = pathResolver.FindPath(unit.Location, targets.Select(i => i.Location));
             if (path != null)
             {
                 unit.Location = path.FirstStep;

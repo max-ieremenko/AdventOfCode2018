@@ -12,6 +12,7 @@ namespace Day15
             try
             {
                 Console.WriteLine("Part one: {0}", Task1.Solve(ReadFile("input.txt")));
+                Console.WriteLine("Part two: {0}", Task2.Solve(ReadFile("input.txt")));
             }
             catch (Exception ex)
             {

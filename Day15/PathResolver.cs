@@ -19,90 +19,66 @@ namespace Day15
             _unitLocations = new HashSet<Point>(unitLocations);
         }
 
-        public static int ComparePointsInReadingOrder(Point x, Point y)
+        public Direction FindPath(Point from, IEnumerable<Point> targets)
         {
-            var c = x.Y.CompareTo(y.Y);
-            if (c == 0)
-            {
-                c = x.X.CompareTo(y.X);
-            }
-
-            return c;
-        }
-
-        public Direction FindPath(Point from, Point to)
-        {
-            return ResolveAllPaths(from, to)
-                .Select(i => new Direction(i.FirstStep, i.Length))
-                .OrderBy(i => i.Length)
-                .ThenBy(i => i.FirstStep.Y)
-                .ThenBy(i => i.FirstStep.X)
+            return targets
+                .SelectMany(GetNeighborLocations)
+                .Where(CanBeOccupied)
+                .Distinct()
+                .AsParallel()
+                .Select(i => ResolvePath(from, i))
+                .Where(i => i != null)
+                .OrderByReadingOrder()
                 .FirstOrDefault();
         }
 
-        private IEnumerable<Step> ResolveAllPaths(Point from, Point to)
+        private Direction ResolvePath(Point from, Point to)
         {
-            var start = new Step(from, to);
-            var queue = new Dictionary<Point, Step>();
-            queue.Add(start.Location, start);
-
-            var lastPathLength = 0;
+            var initial = new Vertex(from, to, null);
+            var vertexByLocation = new Dictionary<Point, Vertex>
+            {
+                { initial.Location, initial }
+            };
+            var queue = new List<Vertex> { initial };
 
             while (queue.Count > 0)
             {
-                var current = queue.Values.OrderBy(i => i.EstimatedDestinationLength).First();
-                queue.Remove(current.Location);
+                queue.Sort((x, y) =>
+                {
+                    var c = x.EstimatedDestinationLength.CompareTo(y.EstimatedDestinationLength);
+                    if (c == 0)
+                    {
+                        c = x.Location.CompareInReadingOrder(y.Location);
+                    }
+
+                    return c;
+                });
+
+                var current = queue[0];
+                queue.RemoveAt(0);
+                current.IsSealed = true;
 
                 if (current.Location == to)
                 {
-                    if (lastPathLength == 0)
-                    {
-                        lastPathLength = current.Length;
-                    }
-
-                    yield return current;
-
-                    if (current.Length > lastPathLength)
-                    {
-                        yield break;
-                    }
+                    return current.GetDirection();
                 }
-                else
+
+                foreach (var nextLocation in GetNeighborLocations(current.Location).Where(CanBeOccupied))
                 {
-                    foreach (var nextLocation in GetNeighborLocations(current.Location).Where(i => i == to || CanBeOccupied(i)))
+                    if (!vertexByLocation.TryGetValue(nextLocation, out var next))
                     {
-                        if (current.IsVisited(nextLocation))
-                        {
-                            continue;
-                        }
-
-                        var next = current.Next(nextLocation);
-
-                        if (queue.TryGetValue(nextLocation, out var existing))
-                        {
-                            if (existing.Length > next.Length)
-                            {
-                                queue.Remove(nextLocation);
-                                queue.Add(next.Location, next);
-                            }
-                            else if (existing.Length == next.Length)
-                            {
-                                var existingFirstStep = existing.FirstStep;
-                                var nextFirstStep = next.FirstStep;
-                                if (ComparePointsInReadingOrder(existingFirstStep, nextFirstStep) > 0)
-                                {
-                                    queue.Remove(nextLocation);
-                                    queue.Add(next.Location, next);
-                                }
-                            }
-                        }
-                        else
-                        {
-                            queue.Add(next.Location, next);
-                        }
+                        next = new Vertex(nextLocation, to, current);
+                        vertexByLocation.Add(nextLocation, next);
+                        queue.Add(next);
+                    }
+                    else if (!next.IsSealed)
+                    {
+                        next.TryOtherPrevious(current);
                     }
                 }
             }
+
+            return null;
         }
 
         private bool CanBeOccupied(Point location)
@@ -122,9 +98,9 @@ namespace Day15
 
         private IEnumerable<Point> GetNeighborLocations(Point location)
         {
+            yield return new Point(location.X, location.Y - 1);
             yield return new Point(location.X - 1, location.Y);
             yield return new Point(location.X + 1, location.Y);
-            yield return new Point(location.X, location.Y - 1);
             yield return new Point(location.X, location.Y + 1);
         }
     }
