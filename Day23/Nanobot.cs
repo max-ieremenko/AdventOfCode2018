@@ -36,5 +36,13 @@ namespace Day23
             var distance = Location.GetDistanceTo(point);
             return distance <= Radius;
         }
+
+        public bool IntersectsWith(Nanobot bot)
+        {
+            var distance = bot.Location.GetDistanceTo(Location);
+            var radius = bot.Radius + Radius;
+
+            return distance <= radius;
+        }
     }
 }
